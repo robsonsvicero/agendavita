@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Agendamento</title>
+    <style>
+      body { font-family: sans-serif; margin: 24px; background: #f6f7fb; color: #222; }
+      h1, h2 { margin: 0 0 12px; }
+      .card { background: #fff; padding: 16px; border-radius: 10px; margin-bottom: 14px; box-shadow: 0 2px 8px rgba(0,0,0,.05); }
+      label { display: block; margin: 8px 0 4px; }
+      input, select, textarea, button { width: 100%; padding: 10px; box-sizing: border-box; }
+      button { margin-top: 10px; cursor: pointer; }
+      .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      .small { color: #555; font-size: 14px; }
+      pre { white-space: pre-wrap; background: #111; color: #b8f8c9; padding: 10px; border-radius: 6px; }
+    </style>
+  </head>
+  <body>
+    <h1>Agendamento</h1>
+
+    <div class="card">
+      <h2>Buscar horarios</h2>
+      <div class="row">
+        <div>
+          <label>Slug da clinica</label>
+          <input id="slugSlots" placeholder="ex: clinica-centro" />
+        </div>
+        <div>
+          <label>Data</label>
+          <input id="dateSlots" type="date" />
+        </div>
+      </div>
+      <button id="btnSlots">Buscar</button>
+      <p class="small" id="slotsInfo"></p>
+      <pre id="slotsOut">[]</pre>
+    </div>
+
+    <div class="card">
+      <h2>Criar agendamento</h2>
+      <div class="row">
+        <div>
+          <label>Slug da clinica</label>
+          <input id="slugAppt" />
+        </div>
+        <div>
+          <label>Data</label>
+          <input id="dateAppt" type="date" />
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Horario</label>
+          <input id="timeAppt" placeholder="HH:MM" />
+        </div>
+        <div>
+          <label>Nome</label>
+          <input id="nameAppt" />
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Telefone</label>
+          <input id="phoneAppt" />
+        </div>
+        <div>
+          <label>Email</label>
+          <input id="emailAppt" />
+        </div>
+      </div>
+      <label>Endereco</label>
+      <input id="addressAppt" />
+      <label>Observacoes</label>
+      <textarea id="notesAppt"></textarea>
+      <button id="btnAppt">Agendar</button>
+      <pre id="apptOut">{}</pre>
+    </div>
+
+    <div class="card">
+      <h2>Solicitar encaixe</h2>
+      <label>Slug da clinica</label>
+      <input id="slugFit" />
+      <div class="row">
+        <div>
+          <label>Nome</label>
+          <input id="nameFit" />
+        </div>
+        <div>
+          <label>Telefone</label>
+          <input id="phoneFit" />
+        </div>
+      </div>
+      <label>Email</label>
+      <input id="emailFit" />
+      <label>Endereco</label>
+      <input id="addressFit" />
+      <label>Data preferencial</label>
+      <input id="dateFit" type="date" />
+      <label>Observacoes</label>
+      <textarea id="notesFit"></textarea>
+      <button id="btnFit">Solicitar encaixe</button>
+      <pre id="fitOut">{}</pre>
+    </div>
+
+    <script>
+      const byId = (id) => document.getElementById(id);
+
+      byId('btnSlots').onclick = async () => {
+        const slug = byId('slugSlots').value.trim();
+        const date = byId('dateSlots').value;
+        const res = await fetch(`/api/public/${slug}/slots?date=${encodeURIComponent(date)}`);
+        const data = await res.json();
+        byId('slotsOut').textContent = JSON.stringify(data, null, 2);
+        byId('slotsInfo').textContent = res.ok ? `Total: ${data.length}` : 'Erro ao buscar';
+      };
+
+      byId('btnAppt').onclick = async () => {
+        const slug = byId('slugAppt').value.trim();
+        const payload = {
+          name: byId('nameAppt').value,
+          phone: byId('phoneAppt').value,
+          email: byId('emailAppt').value,
+          address: byId('addressAppt').value,
+          date: byId('dateAppt').value,
+          time: byId('timeAppt').value,
+          notes: byId('notesAppt').value
+        };
+        const res = await fetch(`/api/public/${slug}/appointments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        byId('apptOut').textContent = JSON.stringify(data, null, 2);
+      };
+
+      byId('btnFit').onclick = async () => {
+        const slug = byId('slugFit').value.trim();
+        const payload = {
+          name: byId('nameFit').value,
+          phone: byId('phoneFit').value,
+          email: byId('emailFit').value,
+          address: byId('addressFit').value,
+          preferred_date: byId('dateFit').value,
+          notes: byId('notesFit').value
+        };
+        const res = await fetch(`/api/public/${slug}/encaixe`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        byId('fitOut').textContent = JSON.stringify(data, null, 2);
+      };
+    </script>
+  </body>
+</html>
