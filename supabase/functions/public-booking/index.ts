@@ -1,7 +1,19 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
+const allowedOrigins = [
+  'https://svicerostudio.com.br',
+  'https://www.svicerostudio.com.br',
+  'https://robsonsvicero.com.br',
+  'https://www.robsonsvicero.com.br',
+  'http://localhost:5173',
+]
+
+const origin = req.headers.get('origin') || ''
+
 const cors = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': allowedOrigins.includes(origin)
+    ? origin
+    : allowedOrigins[0],
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }

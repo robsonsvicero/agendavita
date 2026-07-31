@@ -4,11 +4,13 @@ import { LoginPage } from './pages/LoginPage'
 import { OrganizationDashboardPage } from './pages/OrganizationDashboardPage'
 import { PlatformDashboardPage } from './pages/PlatformDashboardPage'
 import { PublicBookingPage } from './pages/PublicBookingPage'
+import { TestClientBookingPage } from './pages/TestClientBookingPage'
 
 export default function App() {
   return <Routes>
     <Route path="/" element={<LoginPage />} />
     <Route path="/agendar/:slug" element={<PublicBookingPage />} />
+    <Route path="/teste-agendamento" element={<TestClientBookingPage />} />
     <Route path="/entrar" element={<LoginPage />} />
     <Route element={<ProtectedRoute />}>
       <Route path="/admin-geral" element={<PlatformDashboardPage />} />
