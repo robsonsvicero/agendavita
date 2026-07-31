@@ -195,21 +195,51 @@ Deno.serve(async (req) => {
     const patient = body?.patient as { name?: string; phone?: string; email?: string; address?: string; birthDate?: string } | undefined
     if (!isAvailable(time) || !patient?.name?.trim() || !patient?.phone?.trim()) return send({ error: 'time_unavailable' }, 409)
 
-    // Normaliza o telefone: remove tudo que não for dígito.
+    // Normaliza o telefone removendo tudo que não for dígito.
     // Isso evita que "(11) 9 8765-4321" e "11987654321" criem dois registros distintos.
-    const phoneNormalized = (patient.phone.trim()).replace(/[^0-9]/g, '')
+    const phoneRaw = patient.phone.trim()
+    const phoneNormalized = phoneRaw.replace(/[^0-9]/g, '')
     if (!phoneNormalized) return send({ error: 'time_unavailable' }, 409)
 
-    const { data: savedPatient, error: patientError } = await admin.from('patients').upsert({
-      clinic_id: clinic.id,
-      name: patient.name.trim(),
-      phone: patient.phone.trim(),
-      email: patient.email?.trim() || null,
-      address: patient.address?.trim() || null,
-      birth_date: patient.birthDate || null,
-    }, { onConflict: 'clinic_id,phone_normalized', ignoreDuplicates: false }).select('id').single()
+    // Tenta encontrar paciente existente com o mesmo telefone normalizado.
+    const { data: existingPatient } = await admin
+      .from('patients')
+      .select('id')
+      .eq('clinic_id', clinic.id)
+      .filter('phone', 'eq', phoneNormalized)
+      .maybeSingle()
 
-    if (patientError || !savedPatient) return send({ error: patientError?.message || 'patient_error' }, 400)
+    // Tenta também pelo telefone bruto caso o banco ainda não tenha normalizado.
+    const { data: existingPatientRaw } = !existingPatient ? await admin
+      .from('patients')
+      .select('id')
+      .eq('clinic_id', clinic.id)
+      .eq('phone', phoneRaw)
+      .maybeSingle() : { data: null }
+
+    let patientId: number | null = existingPatient?.id ?? existingPatientRaw?.id ?? null
+
+    if (!patientId) {
+      // Paciente novo: insere com o telefone normalizado.
+      const { data: newPatient, error: insertError } = await admin
+        .from('patients')
+        .insert({
+          clinic_id: clinic.id,
+          name: patient.name.trim(),
+          phone: phoneNormalized,
+          email: patient.email?.trim() || null,
+          address: patient.address?.trim() || null,
+          birth_date: patient.birthDate || null,
+        })
+        .select('id')
+        .single()
+
+      if (insertError || !newPatient) return send({ error: insertError?.message || 'patient_error' }, 400)
+      patientId = newPatient.id
+    }
+
+    const savedPatient = { id: patientId }
+    if (!savedPatient) return send({ error: 'patient_error' }, 400)
 
     try {
       const { error: insertError } = await admin.from('appointments').insert({
