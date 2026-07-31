@@ -24,8 +24,12 @@ Deno.serve(async request => {
     const slots: string[] = []
     for (const rule of applicable) {
       for (let start = minutes(rule.start_time), end = minutes(rule.end_time); start + setting.duration_minutes + setting.interval_minutes <= end; start += setting.duration_minutes + setting.interval_minutes) {
+        const time = `${String(Math.floor(start / 60)).padStart(2,'0')}:${String(start % 60).padStart(2,'0')}`
+        const slotDateTime = new Date(`${date}T${time}:00-03:00`)
+        if (slotDateTime < new Date()) continue
+
         const overlaps = (existing ?? []).some(item => item.id !== excludeId && (item.professional_id === professionalId || (resourceId && item.resource_id === resourceId)) && start < minutes(item.time) + item.duration_minutes + item.interval_minutes && start + setting.duration_minutes + setting.interval_minutes > minutes(item.time))
-        if (!overlaps) slots.push(`${String(Math.floor(start / 60)).padStart(2,'0')}:${String(start % 60).padStart(2,'0')}`)
+        if (!overlaps) slots.push(time)
       }
     }
     return send({ slots: [...new Set(slots)].sort() })
