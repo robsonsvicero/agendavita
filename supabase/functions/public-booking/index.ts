@@ -195,6 +195,11 @@ Deno.serve(async (req) => {
     const patient = body?.patient as { name?: string; phone?: string; email?: string; address?: string; birthDate?: string } | undefined
     if (!isAvailable(time) || !patient?.name?.trim() || !patient?.phone?.trim()) return send({ error: 'time_unavailable' }, 409)
 
+    // Normaliza o telefone: remove tudo que não for dígito.
+    // Isso evita que "(11) 9 8765-4321" e "11987654321" criem dois registros distintos.
+    const phoneNormalized = (patient.phone.trim()).replace(/[^0-9]/g, '')
+    if (!phoneNormalized) return send({ error: 'time_unavailable' }, 409)
+
     const { data: savedPatient, error: patientError } = await admin.from('patients').upsert({
       clinic_id: clinic.id,
       name: patient.name.trim(),
@@ -202,7 +207,7 @@ Deno.serve(async (req) => {
       email: patient.email?.trim() || null,
       address: patient.address?.trim() || null,
       birth_date: patient.birthDate || null,
-    }, { onConflict: 'clinic_id,phone' }).select('id').single()
+    }, { onConflict: 'clinic_id,phone_normalized', ignoreDuplicates: false }).select('id').single()
 
     if (patientError || !savedPatient) return send({ error: patientError?.message || 'patient_error' }, 400)
 

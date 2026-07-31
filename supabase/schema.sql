@@ -144,13 +144,15 @@ create table if not exists public.patients (
   clinic_id bigint not null references public.clinics(id) on delete cascade,
   name text not null,
   phone text not null,
+  -- Coluna gerada que guarda apenas os dígitos do telefone (sem espaços, traços ou parênteses).
+  -- É usada como chave de deduplicação para evitar duplicatas por variações de formatação.
+  phone_normalized text generated always as (regexp_replace(phone, '[^0-9]', '', 'g')) stored,
   email text,
   address text,
   birth_date date,
   first_visit_date date,
   last_visit_date date,
-  created_at timestamptz not null default now(),
-  unique (clinic_id, phone)
+  created_at timestamptz not null default now()
 );
 
 alter table public.patients add column if not exists birth_date date;
@@ -206,7 +208,10 @@ alter table public.appointments add column if not exists duration_minutes intege
 create index if not exists idx_memberships_user on public.organization_memberships(user_id) where active;
 create index if not exists idx_professionals_clinic on public.professionals(clinic_id) where active;
 create index if not exists idx_appointments_clinic_date on public.appointments(clinic_id, date);
+-- Índice de busca pelo telefone bruto (digitado) e pelo normalizado (apenas dígitos).
 create index if not exists idx_patients_clinic_phone on public.patients(clinic_id, phone);
+create unique index if not exists patients_clinic_id_phone_normalized_key
+  on public.patients (clinic_id, phone_normalized);
 create unique index if not exists one_active_appointment_per_slot
   on public.appointments (clinic_id, date, time, professional_id)
   where status <> 'cancelled' and professional_id is not null;
