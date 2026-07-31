@@ -138,7 +138,15 @@ Deno.serve(async (req) => {
   const { data: existing, error: existingError } = await admin.from('appointments').select('time,duration_minutes,interval_minutes,professional_id,resource_id').eq('clinic_id', clinic.id).eq('date', date).neq('status', 'cancelled')
   if (existingError) return send({ error: existingError.message }, 500)
 
-  const { data: blocks, error: blocksError } = await admin.from('schedule_blocks').select('professional_id,resource_id,start_time,end_time').eq('clinic_id', clinic.id).eq('date', date).eq('active', true)
+  const nextDate = new Date(`${date}T12:00:00`)
+  nextDate.setDate(nextDate.getDate() + 1)
+  const nextDateString = nextDate.toISOString().slice(0, 10)
+  const { data: blocks, error: blocksError } = await admin
+    .from('schedule_blocks')
+    .select('professional_id,resource_id,starts_at,ends_at')
+    .eq('clinic_id', clinic.id)
+    .lt('starts_at', `${nextDateString}T00:00:00`)
+    .gt('ends_at', `${date}T00:00:00`)
   if (blocksError) return send({ error: blocksError.message }, 500)
 
   const isAvailable = (time: string) => {
@@ -148,9 +156,9 @@ Deno.serve(async (req) => {
     const hasWorkingHours = applicable.some((rule: { start_time: string; end_time: string }) => start >= minutes(rule.start_time) && end <= minutes(rule.end_time))
     if (!hasWorkingHours) return false
 
-    const isBlocked = (blocks ?? []).some((block: { professional_id: number | null; resource_id: number | null; start_time: string; end_time: string }) => {
-      const blockStart = minutes(block.start_time)
-      const blockEnd = minutes(block.end_time)
+    const isBlocked = (blocks ?? []).some((block: { professional_id: number | null; resource_id: number | null; starts_at: string; ends_at: string }) => {
+      const blockStart = block.starts_at.slice(0, 10) < date ? 0 : minutes(block.starts_at.slice(11, 16))
+      const blockEnd = block.ends_at.slice(0, 10) > date ? 24 * 60 : minutes(block.ends_at.slice(11, 16))
       const matchesProfessional = block.professional_id === null || block.professional_id === professionalId
       const matchesResource = block.resource_id === null || resourceId === null || block.resource_id === resourceId
       return matchesProfessional && matchesResource && start < blockEnd && end > blockStart
