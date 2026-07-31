@@ -2,3 +2,18 @@ node_modules/
 .env
 npm-debug.log*
 .DS_Store
+
+# Logs
+*.log
+
+# Dependencias e lock locais
+package-lock.json
+
+# Backend Node/Express (ignorar para repositorio estatico)
+server.js
+db.js
+package.json
+schema.sql
+routes/
+middleware/
+scripts/
