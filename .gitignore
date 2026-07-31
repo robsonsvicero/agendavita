@@ -1,4 +1,6 @@
 node_modules/
+.env.local
+dist/
 .env
 npm-debug.log*
 .DS_Store
@@ -6,14 +8,5 @@ npm-debug.log*
 # Logs
 *.log
 
-# Dependencias e lock locais
-package-lock.json
-
-# Backend Node/Express (ignorar para repositorio estatico)
-server.js
-db.js
-package.json
-schema.sql
-routes/
-middleware/
-scripts/
+# Artefatos locais de build
+*.tsbuildinfo

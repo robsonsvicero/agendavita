@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+@theme {
+  --color-vita-50: #f0fdfa;
+  --color-vita-600: #0f766e;
+  --color-vita-700: #0f5f59;
+}
+
+@layer base {
+  body { @apply min-h-screen bg-slate-50 font-sans text-slate-900 antialiased; }
+  button, input { font: inherit; }
+}

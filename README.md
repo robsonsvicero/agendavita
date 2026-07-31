@@ -1,16 +1,34 @@
-# Agenda Vita — versão Supabase
+# Agenda Vita
 
-Este diretório contém uma versão estática do projeto, compatível com hospedagem simples em Hostinger e com banco de dados no Supabase.
+Aplicação React, TypeScript e Tailwind CSS para agendamento de clínicas e profissionais.
 
-## Passos
+## Desenvolvimento
 
-1. Crie um projeto no Supabase.
-2. Abra o SQL Editor e execute o conteúdo de [supabase/schema.sql](supabase/schema.sql).
-3. Copie [supabase-config.js](supabase-config.js) e preencha com a URL e a chave anônima do seu projeto.
-4. Suba a pasta para a hospedagem estática.
+1. Copie `.env.example` para `.env` e preencha a URL e a chave `anon/publishable` do Supabase.
+2. Execute `npm install`.
+3. Execute `npm run dev`.
 
-## Arquivos principais
+Nunca use uma chave `service_role` em variáveis `VITE_*` ou no navegador.
 
-- [index.html](index.html): página pública para buscar horários e criar agendamentos.
-- [admin.html](admin.html): painel administrativo simples com login via Supabase Auth.
-- [app.js](app.js): lógica de integração com o Supabase.
+## Rotas
+
+- `/#/`: apresentação e futuro agendamento público.
+- `/#/entrar`: acesso de usuários convidados.
+- `/#/admin-geral`: painel exclusivo de `robsonsvicero@outlook.com`.
+- `/#/painel`: painel de clínicas e profissionais.
+
+O `HashRouter` evita erros 404 ao recarregar páginas em hospedagem estática, como Hostinger.
+
+## Produção
+
+Execute `npm run build` e envie apenas o conteúdo de `dist/` para a hospedagem estática.
+
+## Painel administrativo geral
+
+O painel usa a Edge Function [admin-organizations](supabase/functions/admin-organizations/index.ts). Depois de aplicar o schema, publique a função com a Supabase CLI:
+
+```bash
+supabase functions deploy admin-organizations
+```
+
+A função usa `SUPABASE_SERVICE_ROLE_KEY` somente no ambiente seguro do Supabase para criar usuários. Não defina essa chave no `.env` do Vite.
