@@ -8,6 +8,7 @@ import { PublicBookingPage } from './pages/PublicBookingPage'
 export default function App() {
   return <Routes>
     <Route path="/" element={<PublicBookingPage />} />
+    <Route path="/agendar/:slug" element={<PublicBookingPage />} />
     <Route path="/entrar" element={<LoginPage />} />
     <Route element={<ProtectedRoute />}>
       <Route path="/admin-geral" element={<PlatformDashboardPage />} />

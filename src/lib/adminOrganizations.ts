@@ -14,6 +14,11 @@ export type Organization = {
   phone: string | null
   address: string | null
   logo_url: string | null
+  primary_color: string
+  secondary_color: string
+  background_color: string
+  font_family: string
+  google_font_family: string | null
   professional_council_registration: string | null
   technical_responsible: string | null
   clinic_council_registration: string | null
@@ -33,6 +38,11 @@ export type OrganizationInput = {
   professionalCouncilRegistration?: string
   technicalResponsible?: string
   clinicCouncilRegistration?: string
+  primaryColor?: string
+  secondaryColor?: string
+  backgroundColor?: string
+  fontFamily?: string
+  googleFontFamily?: string
   organizationType: OrganizationType
   ownerName?: string
   ownerEmail?: string

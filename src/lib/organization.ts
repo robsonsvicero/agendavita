@@ -15,13 +15,17 @@ export type OrganizationProfile = {
   professional_council_registration: string | null
   technical_responsible: string | null
   clinic_council_registration: string | null
+  primary_color: string
+  secondary_color: string
+  background_color: string
+  font_family: string
 }
 export type OrganizationMembership = { clinic_id: number, role: MembershipRole, clinic: OrganizationProfile }
 
 export async function listMyOrganizations(userId: string): Promise<OrganizationMembership[]> {
   if (!supabase) throw new Error('Configure o Supabase antes de continuar.')
   const { data, error } = await supabase.from('organization_memberships')
-    .select('clinic_id, role, clinics(id, name, slug, email, specialty, organization_type, status, logo_url, phone, address, professional_council_registration, technical_responsible, clinic_council_registration)')
+    .select('clinic_id, role, clinics(id, name, slug, email, specialty, organization_type, status, logo_url, phone, address, professional_council_registration, technical_responsible, clinic_council_registration, primary_color, secondary_color, background_color, font_family)')
     .eq('user_id', userId).eq('active', true)
   if (error) throw error
   return (data ?? []).flatMap((membership) => {
@@ -35,9 +39,11 @@ export async function updateOrganizationProfile(profile: OrganizationProfile) {
   const { error } = await supabase.from('clinics').update({
     name: profile.name.trim(), email: profile.email?.trim() || null, specialty: profile.specialty?.trim() || null,
     phone: profile.phone?.trim() || null, address: profile.address?.trim() || null,
-    professional_council_registration: profile.organization_type === 'professional' ? profile.professional_council_registration?.trim() || null : null,
+  professional_council_registration: profile.organization_type === 'professional' ? profile.professional_council_registration?.trim() || null : null,
     technical_responsible: profile.organization_type === 'clinic' ? profile.technical_responsible?.trim() || null : null,
     clinic_council_registration: profile.organization_type === 'clinic' ? profile.clinic_council_registration?.trim() || null : null,
+    primary_color: profile.primary_color, secondary_color: profile.secondary_color,
+    background_color: profile.background_color, font_family: profile.font_family,
   }).eq('id', profile.id)
   if (error) throw error
 }

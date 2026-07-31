@@ -63,6 +63,11 @@ create table if not exists public.clinics (
   professional_council_registration text,
   technical_responsible text,
   clinic_council_registration text,
+  primary_color text not null default '#0f766e',
+  secondary_color text not null default '#0f5f59',
+  background_color text not null default '#f8fafc',
+  font_family text not null default 'Inter',
+  google_font_family text,
   created_at timestamptz not null default now()
 );
 
@@ -182,6 +187,11 @@ alter table public.clinics add column if not exists address text;
 alter table public.clinics add column if not exists professional_council_registration text;
 alter table public.clinics add column if not exists technical_responsible text;
 alter table public.clinics add column if not exists clinic_council_registration text;
+alter table public.clinics add column if not exists primary_color text not null default '#0f766e';
+alter table public.clinics add column if not exists secondary_color text not null default '#0f5f59';
+alter table public.clinics add column if not exists background_color text not null default '#f8fafc';
+alter table public.clinics add column if not exists font_family text not null default 'Inter';
+alter table public.clinics add column if not exists google_font_family text;
 -- A autenticação agora é gerenciada por auth.users; este campo pertencia ao
 -- backend Express removido e não pode continuar obrigatório.
 alter table public.clinics drop column if exists password_hash;
@@ -355,14 +365,14 @@ drop policy if exists "managers delete organization logos" on storage.objects;
 create policy "public reads organization logos" on storage.objects for select
   using (bucket_id = 'organization-logos');
 create policy "managers upload organization logos" on storage.objects for insert to authenticated
-  with check (bucket_id = 'organization-logos' and public.has_organization_role(
-    split_part(name, '/', 1)::bigint, array['owner', 'manager']::public.membership_role[], true));
+  with check (bucket_id = 'organization-logos' and (public.is_platform_admin() or public.has_organization_role(
+    split_part(name, '/', 1)::bigint, array['owner', 'manager']::public.membership_role[], true)));
 create policy "managers update organization logos" on storage.objects for update to authenticated
-  using (bucket_id = 'organization-logos' and public.has_organization_role(
-    split_part(name, '/', 1)::bigint, array['owner', 'manager']::public.membership_role[], true));
+  using (bucket_id = 'organization-logos' and (public.is_platform_admin() or public.has_organization_role(
+    split_part(name, '/', 1)::bigint, array['owner', 'manager']::public.membership_role[], true)));
 create policy "managers delete organization logos" on storage.objects for delete to authenticated
-  using (bucket_id = 'organization-logos' and public.has_organization_role(
-    split_part(name, '/', 1)::bigint, array['owner', 'manager']::public.membership_role[], true));
+  using (bucket_id = 'organization-logos' and (public.is_platform_admin() or public.has_organization_role(
+    split_part(name, '/', 1)::bigint, array['owner', 'manager']::public.membership_role[], true)));
 
 -- The browser must not write clinical data directly without a role.
 revoke all on public.clinics, public.organization_memberships, public.professionals,

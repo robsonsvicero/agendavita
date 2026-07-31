@@ -18,6 +18,11 @@ type CreateOrganizationInput = {
   specialty?: string
   phone?: string
   address?: string
+  primaryColor?: string
+  secondaryColor?: string
+  backgroundColor?: string
+  fontFamily?: string
+  googleFontFamily?: string
   professionalCouncilRegistration?: string
   technicalResponsible?: string
   clinicCouncilRegistration?: string
@@ -57,7 +62,7 @@ Deno.serve(async (request) => {
 
   if (payload.action === 'list') {
     const { data, error } = await admin.from('clinics')
-      .select('id, name, slug, email, specialty, organization_type, status, phone, address, logo_url, professional_council_registration, technical_responsible, clinic_council_registration, created_at, organization_memberships(count)')
+      .select('id, name, slug, email, specialty, organization_type, status, phone, address, logo_url, primary_color, secondary_color, background_color, font_family, google_font_family, professional_council_registration, technical_responsible, clinic_council_registration, created_at, organization_memberships(count)')
       .order('created_at', { ascending: false })
     if (error) return response({ error: error.message }, 400)
     const organizations = (data ?? []).map((organization) => ({
@@ -105,6 +110,9 @@ Deno.serve(async (request) => {
         professional_council_registration: input.organizationType === 'professional' ? input.professionalCouncilRegistration?.trim() : null,
         technical_responsible: input.organizationType === 'clinic' ? input.technicalResponsible?.trim() : null,
         clinic_council_registration: input.organizationType === 'clinic' ? input.clinicCouncilRegistration?.trim() : null,
+        primary_color: input.primaryColor || '#0f766e', secondary_color: input.secondaryColor || '#0f5f59',
+        background_color: input.backgroundColor || '#f8fafc', font_family: input.fontFamily || 'Inter',
+        google_font_family: input.googleFontFamily?.trim() || null,
       }).select('id, name, slug, status, organization_type').single()
       if (organizationError || !organization) throw organizationError ?? new Error('organization_creation_failed')
 
@@ -142,6 +150,9 @@ Deno.serve(async (request) => {
       professional_council_registration: input.organizationType === 'professional' ? input.professionalCouncilRegistration?.trim() || null : null,
       technical_responsible: input.organizationType === 'clinic' ? input.technicalResponsible?.trim() || null : null,
       clinic_council_registration: input.organizationType === 'clinic' ? input.clinicCouncilRegistration?.trim() || null : null,
+      primary_color: input.primaryColor || '#0f766e', secondary_color: input.secondaryColor || '#0f5f59',
+      background_color: input.backgroundColor || '#f8fafc', font_family: input.fontFamily || 'Inter',
+      google_font_family: input.googleFontFamily?.trim() || null,
     }).eq('id', organizationId)
     if (error) return response({ error: error.message }, 400)
     return response({ success: true })

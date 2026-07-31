@@ -1,15 +1,16 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Archive, Building2, CirclePause, Pencil, Plus, RefreshCcw, Users, X } from 'lucide-react'
+import { Archive, Building2, Camera, CirclePause, Pencil, Plus, RefreshCcw, Users, X } from 'lucide-react'
 import { Navigate } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { createOrganization, listOrganizations, setOrganizationStatus, type Organization, type OrganizationInput, updateOrganization } from '../lib/adminOrganizations'
+import { uploadOrganizationLogo } from '../lib/organization'
 import { useAuth } from '../providers/AuthProvider'
 
 const platformAdminEmail = 'robsonsvicero@outlook.com'
 const emptyForm: OrganizationInput = {
   name: '', slug: '', email: '', specialty: '', phone: '', address: '', logoUrl: '', organizationType: 'clinic',
-  professionalCouncilRegistration: '', technicalResponsible: '', clinicCouncilRegistration: '', ownerName: '', ownerEmail: '', temporaryPassword: '',
+  professionalCouncilRegistration: '', technicalResponsible: '', clinicCouncilRegistration: '', primaryColor: '#0f766e', secondaryColor: '#0f5f59', backgroundColor: '#f8fafc', fontFamily: 'Inter', googleFontFamily: '', ownerName: '', ownerEmail: '', temporaryPassword: '',
 }
 
 export function PlatformDashboardPage() {
@@ -30,13 +31,21 @@ export function PlatformDashboardPage() {
     onSuccess: refresh,
     onError: (cause: Error) => setNotice(`Erro: ${translateError(cause.message)}`),
   })
+  const uploadLogo = useMutation({
+    mutationFn: (file: File) => {
+      if (!form.id) throw new Error('Salve a organização antes de enviar o logotipo.')
+      return uploadOrganizationLogo(form.id, file)
+    },
+    onSuccess: (logoUrl) => { setForm(current => ({ ...current, logoUrl })); setNotice('Logotipo atualizado com sucesso.'); refresh() },
+    onError: (cause: Error) => setNotice(`Erro: ${translateError(cause.message)}`),
+  })
 
   if (user?.email?.toLowerCase() !== platformAdminEmail) return <Navigate to="/painel" replace />
   const activeCount = organizations.filter(item => item.status === 'active').length
   const suspendedCount = organizations.filter(item => item.status === 'suspended').length
   const submit = (event: FormEvent) => { event.preventDefault(); setNotice(''); save.mutate({ ...form, slug: slugify(form.slug) }) }
   const edit = (organization: Organization) => {
-    setForm({ id: organization.id, name: organization.name, slug: organization.slug, email: organization.email ?? '', specialty: organization.specialty ?? '', phone: organization.phone ?? '', address: organization.address ?? '', logoUrl: organization.logo_url ?? '', organizationType: organization.organization_type, professionalCouncilRegistration: organization.professional_council_registration ?? '', technicalResponsible: organization.technical_responsible ?? '', clinicCouncilRegistration: organization.clinic_council_registration ?? '' })
+    setForm({ id: organization.id, name: organization.name, slug: organization.slug, email: organization.email ?? '', specialty: organization.specialty ?? '', phone: organization.phone ?? '', address: organization.address ?? '', logoUrl: organization.logo_url ?? '', organizationType: organization.organization_type, professionalCouncilRegistration: organization.professional_council_registration ?? '', technicalResponsible: organization.technical_responsible ?? '', clinicCouncilRegistration: organization.clinic_council_registration ?? '', primaryColor: organization.primary_color, secondaryColor: organization.secondary_color, backgroundColor: organization.background_color, fontFamily: organization.font_family, googleFontFamily: organization.google_font_family ?? '' })
     setEditing(true); setNotice('')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -60,7 +69,15 @@ export function PlatformDashboardPage() {
         <Field label="Especialidade" value={form.specialty} onChange={value => setForm({ ...form, specialty: value })} />
         <Field label="Telefone" value={form.phone} onChange={value => setForm({ ...form, phone: value })} />
         <Field label="Endereço" value={form.address} onChange={value => setForm({ ...form, address: value })} />
-        <Field label="URL do logotipo" type="url" value={form.logoUrl ?? ''} onChange={value => setForm({ ...form, logoUrl: value })} />
+        <div className="text-sm font-medium">Logotipo
+          <div className="mt-1.5 flex items-center gap-3">{form.logoUrl ? <img src={form.logoUrl} alt="Logotipo atual" className="size-12 rounded-xl border border-slate-200 object-cover" /> : <div className="grid size-12 place-items-center rounded-xl bg-vita-50 text-vita-700"><Building2 size={22} /></div>}
+            {editing ? <label className="cursor-pointer rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50"><span className="inline-flex items-center gap-2"><Camera size={16} />{uploadLogo.isPending ? 'Enviando…' : 'Enviar logo'}</span><input type="file" accept="image/jpeg,image/png,image/webp" disabled={uploadLogo.isPending} onChange={event => { const file = event.target.files?.[0]; if (file) uploadLogo.mutate(file); event.currentTarget.value = '' }} className="hidden" /></label> : <p className="text-xs font-normal text-slate-500">Crie a organização e depois edite-a para enviar o logotipo.</p>}</div>
+        </div>
+        <Field label="Cor primária" type="color" value={form.primaryColor ?? '#0f766e'} onChange={value => setForm({ ...form, primaryColor: value })} />
+        <Field label="Cor secundária" type="color" value={form.secondaryColor ?? '#0f5f59'} onChange={value => setForm({ ...form, secondaryColor: value })} />
+        <Field label="Cor de fundo" type="color" value={form.backgroundColor ?? '#f8fafc'} onChange={value => setForm({ ...form, backgroundColor: value })} />
+        <label className="text-sm font-medium">Fonte<select value={form.fontFamily ?? 'Inter'} onChange={event => setForm({ ...form, fontFamily: event.target.value })} className={inputStyle}><option value="Inter">Inter</option><option value="Arial">Arial</option><option value="Verdana">Verdana</option><option value="Georgia">Georgia</option></select></label>
+        <Field label="Google Font (opcional)" value={form.googleFontFamily ?? ''} onChange={value => setForm({ ...form, googleFontFamily: value })} hint="Ex.: Montserrat, Poppins ou Roboto. Tem prioridade sobre a fonte acima." />
         {form.organizationType === 'professional' && <Field label="Registro no conselho de classe" value={form.professionalCouncilRegistration ?? ''} onChange={value => setForm({ ...form, professionalCouncilRegistration: value })} hint="Ex.: CRM-SP 123456 ou CRO-SP 12345" required={!editing} />}
         {form.organizationType === 'clinic' && <><Field label="Responsável técnico (RT)" value={form.technicalResponsible ?? ''} onChange={value => setForm({ ...form, technicalResponsible: value })} required={!editing} />
           <Field label="Registro da clínica no conselho" value={form.clinicCouncilRegistration ?? ''} onChange={value => setForm({ ...form, clinicCouncilRegistration: value })} hint="Ex.: CRO-PJ 1234" required={!editing} /></>}
