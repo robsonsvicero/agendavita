@@ -150,6 +150,10 @@ Deno.serve(async (req) => {
   if (blocksError) return send({ error: blocksError.message }, 500)
 
   const isAvailable = (time: string) => {
+    const slotDateTime = new Date(`${date}T${time}:00-03:00`)
+    const twoHoursFromNow = new Date(Date.now() + 2 * 60 * 60 * 1000)
+    if (slotDateTime < twoHoursFromNow) return false
+
     const start = minutes(time)
     const end = start + setting.duration_minutes + setting.interval_minutes
 
