@@ -1,6 +1,8 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const allowedOrigins = [
+  'https://agendavita.com.br',
+  'https://www.agendavita.com.br',
   'https://svicerostudio.com.br',
   'https://www.svicerostudio.com.br',
   'https://robsonsvicero.com.br',
@@ -37,7 +39,7 @@ async function sendConfirmationEmail(input: { email: string; patientName: string
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: 'Agenda Vita <agendamentos@robsonsvicero.net>',
+        from: 'Agenda Vita <agendamentos@agendavita.com.br>',
         to: [input.email],
         subject: `Confirmação de agendamento — ${input.clinicName}`,
         text: `Olá, ${input.patientName}!\n\nSeu agendamento foi confirmado.\n\nLocal: ${input.clinicName}\nProfissional: ${input.professionalName}\nData: ${date}\nHorário: ${input.time}\n\nSe precisar alterar ou cancelar, entre em contato com a organização.`,
