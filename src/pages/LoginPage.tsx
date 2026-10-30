@@ -58,6 +58,15 @@ export function LoginPage() {
   return (
     <main className="grid min-h-screen place-items-center bg-slate-100 p-5">
       <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-sm">
+        <div className="mb-4">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-800 transition"
+          >
+            <ArrowLeft size={14} /> Voltar à página inicial
+          </Link>
+        </div>
+
         <h1 className="text-2xl font-bold">
           {mode === 'login' ? 'Acessar Agenda Vita' : 'Recuperar senha'}
         </h1>
