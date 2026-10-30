@@ -5,7 +5,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { callPublicBooking, fetchPublicBookingInfo, type PublicClinic, type PublicProfessional } from '../lib/publicBooking'
 
 const today = new Date().toISOString().slice(0, 10)
-const emptyForm = { professionalId: '', resourceId: '', time: '', name: '', phone: '', email: '', address: '', birthDate: '' }
+const emptyForm = { professionalId: '', resourceId: '', time: '', specialty: '', notes: '', name: '', phone: '', email: '', address: '', birthDate: '' }
 
 type PublicBookingExperienceProps = {
   slug: string
@@ -44,6 +44,23 @@ export function PublicBookingExperience({ slug, backHref = '/', backLabel = 'Age
     return () => fontLink.remove()
   }, [info.data?.clinic.google_font_family])
 
+  const professionals = info.data?.professionals ?? []
+
+  // Quando houver apenas um profissional cadastrado e ativo, seleciona-o automaticamente
+  useEffect(() => {
+    if (professionals.length === 1) {
+      const soleProfessional = professionals[0]
+      setForm(prev => {
+        if (prev.professionalId === String(soleProfessional.id)) return prev
+        return {
+          ...prev,
+          professionalId: String(soleProfessional.id),
+          specialty: soleProfessional.specialty || prev.specialty,
+        }
+      })
+    }
+  }, [professionals])
+
   const slots = useQuery({
     queryKey: ['public-slots', slug, date, form.professionalId, form.resourceId],
     enabled: Boolean(slug && form.professionalId),
@@ -64,7 +81,15 @@ export function PublicBookingExperience({ slug, backHref = '/', backLabel = 'Age
         professionalId: +form.professionalId,
         resourceId: form.resourceId ? +form.resourceId : null,
         time: form.time,
-        patient: form,
+        specialty: form.specialty || undefined,
+        notes: form.notes || undefined,
+        patient: {
+          name: form.name,
+          phone: form.phone,
+          email: form.email,
+          address: form.address,
+          birthDate: form.birthDate,
+        },
       })
       setMessage('Agendamento realizado com sucesso.')
       setForm(emptyForm)
@@ -98,7 +123,41 @@ export function PublicBookingExperience({ slug, backHref = '/', backLabel = 'Age
         </div>
 
         <form onSubmit={submit} className="mt-6 grid gap-4 sm:grid-cols-2">
-          <Select label="Profissional" value={form.professionalId} set={value => setForm({ ...form, professionalId: value, time: '' })} items={info.data?.professionals ?? []} />
+          {professionals.length === 1 ? (
+            <label>
+              Profissional
+              <input
+                type="text"
+                readOnly
+                value={`${professionals[0].name}${professionals[0].specialty ? ` — ${professionals[0].specialty}` : ''}`}
+                className="input cursor-default bg-slate-50 font-medium text-slate-800"
+              />
+            </label>
+          ) : (
+            <Select
+              label="Profissional"
+              value={form.professionalId}
+              set={value => {
+                const selectedProf = professionals.find(p => String(p.id) === value)
+                setForm({
+                  ...form,
+                  professionalId: value,
+                  time: '',
+                  specialty: selectedProf?.specialty || form.specialty,
+                })
+              }}
+              items={professionals}
+            />
+          )}
+          <label>
+            Especialidade
+            <input
+              placeholder="Ex.: Ortodontia, Clínico Geral, Odontopediatria"
+              value={form.specialty}
+              onChange={event => setForm({ ...form, specialty: event.target.value })}
+              className="input"
+            />
+          </label>
           <label>
             Data
             <input type="date" min={today} value={date} onChange={event => { setDate(event.target.value); setForm({ ...form, time: '' }) }} className="input" />
@@ -129,6 +188,16 @@ export function PublicBookingExperience({ slug, backHref = '/', backLabel = 'Age
           <label className="sm:col-span-2">
             Endereço
             <input value={form.address} onChange={event => setForm({ ...form, address: event.target.value })} className="input" />
+          </label>
+          <label className="sm:col-span-2">
+            Observações
+            <textarea
+              rows={3}
+              placeholder="Alguma necessidade especial, sintomas ou observação importante"
+              value={form.notes}
+              onChange={event => setForm({ ...form, notes: event.target.value })}
+              className="input resize-none"
+            />
           </label>
           <div className="sm:col-span-2">
             <button className="w-full rounded-lg bg-vita-600 px-4 py-3 font-semibold text-white hover:bg-vita-700">
@@ -165,7 +234,11 @@ function Select({ label, value, set, items }: { label: string, value: string, se
     {label}
     <select value={value} onChange={event => set(event.target.value)} className="input" required>
       <option value="">Selecione</option>
-      {items.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+      {items.map(item => (
+        <option key={item.id} value={item.id}>
+          {item.name}{item.specialty ? ` — ${item.specialty}` : ''}
+        </option>
+      ))}
     </select>
   </label>
 }

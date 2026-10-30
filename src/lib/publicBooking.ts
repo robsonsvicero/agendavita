@@ -14,6 +14,7 @@ export type PublicClinic = {
 export type PublicProfessional = {
   id: number
   name: string
+  specialty?: string | null
 }
 
 export type PublicResource = {

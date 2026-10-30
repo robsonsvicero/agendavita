@@ -7,8 +7,15 @@ const allowedOrigins = [
   'https://www.svicerostudio.com.br',
   'https://robsonsvicero.com.br',
   'https://www.robsonsvicero.com.br',
+  'https://mariana-dentista.vercel.app',
   'http://localhost:5173',
 ]
+
+const isAllowedOrigin = (origin: string) => {
+  if (!origin) return false
+  const clean = origin.replace(/\/$/, '')
+  return allowedOrigins.includes(clean) || clean.endsWith('.vercel.app')
+}
 
 const rateLimitWindowMs = 60_000
 const rateLimitMaxRequests = 10
@@ -26,7 +33,7 @@ const getClientIp = (req: Request) => {
   return forwarded.split(',')[0].trim() || 'unknown'
 }
 
-async function sendConfirmationEmail(input: { email: string; patientName: string; clinicName: string; professionalName: string; date: string; time: string }) {
+async function sendConfirmationEmail(input: { email: string; patientName: string; clinicName: string; clinicAddress?: string | null; professionalName: string; date: string; time: string }) {
   const apiKey = Deno.env.get('RESEND_API_KEY')
   if (!apiKey) return
 
@@ -34,7 +41,12 @@ async function sendConfirmationEmail(input: { email: string; patientName: string
     const date = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'full', timeZone: 'America/Sao_Paulo' }).format(new Date(`${input.date}T12:00:00`))
     const patient = escapeHtml(input.patientName)
     const clinic = escapeHtml(input.clinicName)
+    const address = input.clinicAddress?.trim() ? escapeHtml(input.clinicAddress.trim()) : null
     const professional = escapeHtml(input.professionalName)
+
+    const textAddress = address ? `\nEndereço: ${input.clinicAddress?.trim()}` : ''
+    const htmlAddress = address ? `<p style="margin:0 0 8px"><strong>Endereço:</strong> ${address}</p>` : ''
+
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
@@ -42,8 +54,8 @@ async function sendConfirmationEmail(input: { email: string; patientName: string
         from: 'Agenda Vita <agendamentos@agendavita.com.br>',
         to: [input.email],
         subject: `Confirmação de agendamento — ${input.clinicName}`,
-        text: `Olá, ${input.patientName}!\n\nSeu agendamento foi confirmado.\n\nLocal: ${input.clinicName}\nProfissional: ${input.professionalName}\nData: ${date}\nHorário: ${input.time}\n\nSe precisar alterar ou cancelar, entre em contato com a organização.`,
-        html: `<main style="font-family:Arial,sans-serif;color:#1e293b;line-height:1.5"><h1 style="color:#0f766e;font-size:22px">Agendamento confirmado</h1><p>Olá, <strong>${patient}</strong>!</p><p>Seu agendamento foi confirmado.</p><div style="border:1px solid #e2e8f0;border-radius:12px;padding:16px;background:#f8fafc"><p style="margin:0 0 8px"><strong>Local:</strong> ${clinic}</p><p style="margin:0 0 8px"><strong>Profissional:</strong> ${professional}</p><p style="margin:0 0 8px"><strong>Data:</strong> ${date}</p><p style="margin:0"><strong>Horário:</strong> ${input.time}</p></div><p>Se precisar alterar ou cancelar, entre em contato com a organização.</p></main>`,
+        text: `Olá, ${input.patientName}!\n\nSeu agendamento foi confirmado.\n\nLocal: ${input.clinicName}${textAddress}\nProfissional: ${input.professionalName}\nData: ${date}\nHorário: ${input.time}\n\nSe precisar alterar ou cancelar, entre em contato com a organização.`,
+        html: `<main style="font-family:Arial,sans-serif;color:#1e293b;line-height:1.5"><h1 style="color:#0f766e;font-size:22px">Agendamento confirmado</h1><p>Olá, <strong>${patient}</strong>!</p><p>Seu agendamento foi confirmado.</p><div style="border:1px solid #e2e8f0;border-radius:12px;padding:16px;background:#f8fafc"><p style="margin:0 0 8px"><strong>Local:</strong> ${clinic}</p>${htmlAddress}<p style="margin:0 0 8px"><strong>Profissional:</strong> ${professional}</p><p style="margin:0 0 8px"><strong>Data:</strong> ${date}</p><p style="margin:0"><strong>Horário:</strong> ${input.time}</p></div><p>Se precisar alterar ou cancelar, entre em contato com a organização.</p></main>`,
       }),
     })
 
@@ -59,7 +71,7 @@ async function sendConfirmationEmail(input: { email: string; patientName: string
 Deno.serve(async (req) => {
   const origin = req.headers.get('origin') || ''
   const cors = {
-    'Access-Control-Allow-Origin': allowedOrigins.includes(origin) ? origin : allowedOrigins[0],
+    'Access-Control-Allow-Origin': isAllowedOrigin(origin) ? origin : allowedOrigins[0],
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
   }
@@ -91,7 +103,7 @@ Deno.serve(async (req) => {
 
   const { data: clinic, error: clinicError } = await admin
     .from('clinics')
-    .select('id,name,specialty,logo_url,primary_color,secondary_color,background_color,font_family,google_font_family')
+    .select('id,name,address,specialty,logo_url,primary_color,secondary_color,background_color,font_family,google_font_family')
     .eq('slug', slug)
     .eq('status', 'active')
     .maybeSingle()
@@ -243,6 +255,9 @@ Deno.serve(async (req) => {
     const savedPatient = { id: patientId }
     if (!savedPatient) return send({ error: 'patient_error' }, 400)
 
+    const specialty = body?.specialty ? String(body.specialty).trim() : null
+    const notes = body?.notes ? String(body.notes).trim() : null
+
     try {
       const { error: insertError } = await admin.from('appointments').insert({
         clinic_id: clinic.id,
@@ -254,6 +269,8 @@ Deno.serve(async (req) => {
         duration_minutes: setting.duration_minutes,
         interval_minutes: setting.interval_minutes,
         status: 'pending',
+        specialty,
+        notes,
       })
 
       if (insertError) {
@@ -268,7 +285,7 @@ Deno.serve(async (req) => {
 
     const email = patient.email?.trim()
     if (email) {
-      await sendConfirmationEmail({ email, patientName: patient.name.trim(), clinicName: clinic.name, professionalName: professional.name, date, time })
+      await sendConfirmationEmail({ email, patientName: patient.name.trim(), clinicName: clinic.name, clinicAddress: clinic.address, professionalName: professional.name, date, time })
     }
 
     return send({ success: true, clinicName: clinic.name })

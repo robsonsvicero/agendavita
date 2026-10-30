@@ -170,11 +170,14 @@ create table if not exists public.appointments (
   interval_minutes integer not null default 0 check (interval_minutes between 0 and 240),
   status text not null default 'pending' check (status in ('pending', 'confirmed', 'cancelled', 'attended')),
   is_first_visit boolean not null default false,
+  specialty text,
   notes text,
   created_at timestamptz not null default now(),
   check (professional_id is not null or resource_id is not null)
 );
 
+alter table public.appointments add column if not exists specialty text;
+alter table public.appointments add column if not exists notes text;
 alter table public.appointments add column if not exists interval_minutes integer not null default 0 check (interval_minutes between 0 and 240);
 alter table public.appointments drop constraint if exists appointments_status_check;
 alter table public.appointments add constraint appointments_status_check check (status in ('pending', 'confirmed', 'cancelled', 'attended'));

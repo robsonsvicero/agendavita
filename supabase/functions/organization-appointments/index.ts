@@ -35,7 +35,7 @@ Deno.serve(async request => {
     return send({ slots: [...new Set(slots)].sort() })
   }
   if (body.action === 'create' || body.action === 'reschedule') {
-    const patientId = Number(body.patientId), professionalId = Number(body.professionalId), resourceId = body.resourceId ? Number(body.resourceId) : null, date = String(body.date), time = String(body.time), appointmentId = body.action === 'reschedule' ? Number(body.id) : null
+    const patientId = Number(body.patientId), professionalId = Number(body.professionalId), resourceId = body.resourceId ? Number(body.resourceId) : null, date = String(body.date), time = String(body.time), appointmentId = body.action === 'reschedule' ? Number(body.id) : null, specialty = body.specialty ? String(body.specialty).trim() : null, notes = body.notes ? String(body.notes).trim() : null
     if (!patientId || !professionalId || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}/.test(time)) return send({ error: 'invalid_appointment_data' }, 400)
     const [{ data: patient }, { data: professional }, { data: setting }] = await Promise.all([admin.from('patients').select('id').eq('id', patientId).eq('clinic_id', clinicId).maybeSingle(), admin.from('professionals').select('id').eq('id', professionalId).eq('clinic_id', clinicId).eq('active', true).maybeSingle(), admin.from('appointment_types').select('duration_minutes, interval_minutes').eq('clinic_id', clinicId).eq('professional_id', professionalId).eq('active', true).maybeSingle()])
     if (!patient || !professional) return send({ error: 'patient_or_professional_not_found' }, 400)
@@ -47,7 +47,7 @@ Deno.serve(async request => {
     const { data: existing } = await admin.from('appointments').select('id,time,duration_minutes,interval_minutes,professional_id,resource_id').eq('clinic_id', clinicId).eq('date', date).neq('status', 'cancelled')
     const overlaps = (existing ?? []).some(item => item.id !== appointmentId && (item.professional_id === professionalId || (resourceId && item.resource_id === resourceId)) && start < minutes(item.time) + item.duration_minutes + item.interval_minutes && end > minutes(item.time))
     if (overlaps) return send({ error: 'time_unavailable' }, 409)
-    const payload = { patient_id: patientId, professional_id: professionalId, resource_id: resourceId, date, time, duration_minutes: setting.duration_minutes, interval_minutes: setting.interval_minutes, status: 'pending' }
+    const payload = { patient_id: patientId, professional_id: professionalId, resource_id: resourceId, date, time, duration_minutes: setting.duration_minutes, interval_minutes: setting.interval_minutes, status: 'pending', specialty, notes }
     const { error } = appointmentId ? await admin.from('appointments').update(payload).eq('id', appointmentId).eq('clinic_id', clinicId) : await admin.from('appointments').insert({ clinic_id: clinicId, ...payload })
     if (error) return send({ error: error.message }, 400); return send({ success: true })
   }

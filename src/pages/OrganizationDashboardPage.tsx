@@ -50,18 +50,52 @@ function OrganizationProfileForm({ membership, onSaved }: { membership: Organiza
   const editable = canManageProfile(membership.role) && membership.clinic.status === 'active'
   const [profile, setProfile] = useState<OrganizationProfile>(membership.clinic)
   const [message, setMessage] = useState('')
-  useEffect(() => { setProfile(membership.clinic); setMessage('') }, [membership])
-  const save = useMutation({ mutationFn: updateOrganizationProfile, onSuccess: () => { setMessage('Dados salvos com sucesso.'); onSaved() }, onError: (error: Error) => setMessage(`Erro: ${error.message}`) })
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  useEffect(() => { setProfile(membership.clinic); setMessage(''); setErrors({}) }, [membership])
+  const save = useMutation({ mutationFn: updateOrganizationProfile, onSuccess: () => { setMessage('Dados salvos com sucesso.'); setErrors({}); onSaved() }, onError: (error: Error) => setMessage(`Erro: ${error.message}`) })
   const upload = useMutation({ mutationFn: (file: File) => uploadOrganizationLogo(profile.id, file), onSuccess: (url) => { setProfile(current => ({ ...current, logo_url: url })); setMessage('Logotipo atualizado com sucesso.'); onSaved() }, onError: (error: Error) => setMessage(`Erro: ${error.message}`) })
-  const submit = (event: FormEvent) => { event.preventDefault(); setMessage(''); save.mutate(profile) }
+
+  const updateProfileField = <K extends keyof OrganizationProfile>(field: K, value: OrganizationProfile[K]) => {
+    setProfile(prev => ({ ...prev, [field]: value }))
+    if (errors[field as string]) {
+      setErrors(prev => {
+        const next = { ...prev }
+        delete next[field as string]
+        return next
+      })
+    }
+  }
+
+  const validate = () => {
+    const errs: Record<string, string> = {}
+    if (!profile.name.trim()) errs.name = 'Nome é obrigatório.'
+    if (profile.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profile.email)) {
+      errs.email = 'Informe um e-mail válido.'
+    }
+    setErrors(errs)
+    return Object.keys(errs).length === 0
+  }
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    setMessage('')
+    if (!validate()) {
+      setMessage('Erro: Corrija os campos destacados em vermelho.')
+      return
+    }
+    save.mutate(profile)
+  }
   const logoChange = (event: ChangeEvent<HTMLInputElement>) => { const file = event.target.files?.[0]; if (file) { setMessage(''); upload.mutate(file) }; event.target.value = '' }
 
   return <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><div className="flex flex-col justify-between gap-4 sm:flex-row"><div><h2 className="font-bold">Perfil da organização</h2><p className="mt-1 text-sm text-slate-600">Dados exibidos no painel e no futuro agendamento público.</p></div><Logo profile={profile} editable={editable} uploading={upload.isPending} onChange={logoChange} /></div>
-    <form onSubmit={submit} className="mt-6 grid gap-4 md:grid-cols-2"><Field label="Nome" value={profile.name} onChange={value => setProfile({ ...profile, name: value })} disabled={!editable} required /><Field label="E-mail" type="email" value={profile.email ?? ''} onChange={value => setProfile({ ...profile, email: value })} disabled={!editable} />
-      <Field label="Especialidade" value={profile.specialty ?? ''} onChange={value => setProfile({ ...profile, specialty: value })} disabled={!editable} /><Field label="Telefone" value={profile.phone ?? ''} onChange={value => setProfile({ ...profile, phone: value })} disabled={!editable} />
-      <Field label="Endereço" value={profile.address ?? ''} onChange={value => setProfile({ ...profile, address: value })} disabled={!editable} />
+    <form onSubmit={submit} className="mt-6 grid gap-4 md:grid-cols-2">
+      <Field label="Nome" value={profile.name} onChange={value => updateProfileField('name', value)} error={errors.name} disabled={!editable} required />
+      <Field label="E-mail" type="email" value={profile.email ?? ''} onChange={value => updateProfileField('email', value)} error={errors.email} disabled={!editable} />
+      <Field label="Especialidade" value={profile.specialty ?? ''} onChange={value => updateProfileField('specialty', value)} disabled={!editable} />
+      <Field label="Telefone" value={profile.phone ?? ''} onChange={value => updateProfileField('phone', value)} disabled={!editable} />
+      <Field label="Endereço" value={profile.address ?? ''} onChange={value => updateProfileField('address', value)} disabled={!editable} />
       <div className="hidden md:block" />
-      {profile.organization_type === 'professional' ? <Field label="Registro no conselho de classe" value={profile.professional_council_registration ?? ''} onChange={value => setProfile({ ...profile, professional_council_registration: value })} disabled={!editable} /> : <><Field label="Responsável técnico (RT)" value={profile.technical_responsible ?? ''} onChange={value => setProfile({ ...profile, technical_responsible: value })} disabled={!editable} /><Field label="Registro da clínica no conselho" value={profile.clinic_council_registration ?? ''} onChange={value => setProfile({ ...profile, clinic_council_registration: value })} disabled={!editable} /></>}
+      {profile.organization_type === 'professional' ? <Field label="Registro no conselho de classe" value={profile.professional_council_registration ?? ''} onChange={value => updateProfileField('professional_council_registration', value)} disabled={!editable} /> : <><Field label="Responsável técnico (RT)" value={profile.technical_responsible ?? ''} onChange={value => updateProfileField('technical_responsible', value)} disabled={!editable} /><Field label="Registro da clínica no conselho" value={profile.clinic_council_registration ?? ''} onChange={value => updateProfileField('clinic_council_registration', value)} disabled={!editable} /></>}
       {editable && <div className="flex items-end"><button disabled={save.isPending || upload.isPending} className="w-full rounded-lg bg-vita-600 px-4 py-2.5 font-semibold text-white hover:bg-vita-700 disabled:opacity-60">{save.isPending ? 'Salvando…' : 'Salvar alterações'}</button></div>}
     </form>{message && <p className={`mt-4 rounded-lg p-3 text-sm ${message.startsWith('Erro:') ? 'bg-red-50 text-red-700' : 'bg-vita-50 text-vita-700'}`}>{message}</p>}
   </section>
@@ -71,7 +105,11 @@ function Logo({ profile, editable, uploading, onChange }: { profile: Organizatio
   return <div className="flex items-center gap-3"><div className="grid size-16 place-items-center overflow-hidden rounded-2xl bg-vita-50 text-vita-700">{profile.logo_url ? <img src={profile.logo_url} alt={`Logotipo de ${profile.name}`} className="size-full object-cover" /> : <Building2 size={28} />}</div>{editable && <label className="cursor-pointer rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50"><span className="inline-flex items-center gap-2"><Camera size={16} />{uploading ? 'Enviando…' : 'Enviar logo'}</span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={onChange} disabled={uploading} className="hidden" /></label>}</div>
 }
 
-function Field({ label, value, onChange, type = 'text', disabled = false, required = false }: { label: string, value: string, onChange: (value: string) => void, type?: string, disabled?: boolean, required?: boolean }) { return <label className="text-sm font-medium">{label}<input type={type} value={value} onChange={event => onChange(event.target.value)} disabled={disabled} required={required} className="mt-1.5 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 outline-none focus:border-vita-600 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500" /></label> }
+function Field({ label, value, onChange, type = 'text', error, disabled = false, required = false }: { label: string, value: string, onChange: (value: string) => void, type?: string, error?: string, disabled?: boolean, required?: boolean }) {
+  const isInvalid = Boolean(error)
+  const borderClass = isInvalid ? 'border-red-500 focus:border-red-600 bg-red-50/20 text-red-950' : 'border-slate-300 focus:border-vita-600 bg-white'
+  return <label className="text-sm font-medium">{label}<input type={type} value={value} onChange={event => onChange(event.target.value)} disabled={disabled} required={required} className={`mt-1.5 block w-full rounded-lg border px-3 py-2.5 outline-none transition-colors ${borderClass} disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500`} />{error && <span className="mt-1 block text-xs font-normal text-red-600">{error}</span>}</label>
+}
 function ErrorState({ message }: { message: string }) { return <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-950"><ShieldAlert size={24} /><p className="mt-3 font-semibold">Acesso à organização indisponível</p><p className="mt-1 text-sm">{message}</p></div> }
 function LoadingScreen() { return <AppShell title="Painel da organização"><p className="text-slate-500">Carregando organização…</p></AppShell> }
 function roleLabel(role: OrganizationMembership['role']) { return ({ owner: 'Dono', manager: 'Gestor', secretary: 'Secretária', professional: 'Profissional' })[role] }

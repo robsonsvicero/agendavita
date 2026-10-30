@@ -6,7 +6,7 @@ import { listPatients, type Patient } from '../lib/patients'
 import { listProfessionals, listResources, type Professional, type ClinicalResource } from '../lib/organizationTeam'
 import { listAppointmentTypes, listWorkingHours } from '../lib/scheduleSettings'
 
-type Appointment = { id:number; date:string; time:string; status:string; duration_minutes:number; patient_id:number; professional_id:number; resource_id:number|null; patients:{name:string}|null; professionals:{name:string}|null; clinical_resources:{name:string}|null }
+type Appointment = { id:number; date:string; time:string; status:string; duration_minutes:number; patient_id:number; professional_id:number; resource_id:number|null; specialty:string|null; notes:string|null; patients:{name:string}|null; professionals:{name:string}|null; clinical_resources:{name:string}|null }
 const today = new Date().toISOString().slice(0,10)
 const toMinutes = (time: string) => { const [h, m] = time.slice(0, 5).split(':').map(Number); return h * 60 + m }
 const fromMinutes = (m: number) => `${String(Math.floor(m / 60)).padStart(2,'0')}:${String(m % 60).padStart(2,'0')}`
@@ -16,7 +16,7 @@ type TimelineSlot = { time: string; type: 'free' | 'booked'; appointment?: Appoi
 export function AgendaSection({ clinicId, enabled, organizationType = 'professional' }: { clinicId:number; enabled:boolean; organizationType?: 'clinic' | 'professional' }) {
   const client=useQueryClient()
   const [date,setDate]=useState(today)
-  const [form,setForm]=useState({patientId:'',professionalId:'',resourceId:'',time:''})
+  const [form,setForm]=useState({patientId:'',professionalId:'',resourceId:'',time:'',specialty:'',notes:''})
   const [editingId,setEditingId]=useState<number|null>(null)
   const [notice,setNotice]=useState('')
   const [activeTab,setActiveTab]=useState<number|null>(null) // null = "Todos"
@@ -34,7 +34,7 @@ export function AgendaSection({ clinicId, enabled, organizationType = 'professio
 
   const invoke=async(body:Record<string,unknown>)=>{if(!supabase)throw new Error('Configure o Supabase.');const {data,error}=await supabase.functions.invoke('organization-appointments',{body:{clinicId,...body}});if(error){const r=(error as {context?:Response}).context;const d=r instanceof Response?await r.json().catch(()=>null) as {error?:string}|null:null;throw new Error(d?.error??error.message)}if(data?.error)throw new Error(data.error);return data}
 
-  const appointments=useQuery({queryKey:['appointments',clinicId,date],enabled,queryFn:async()=>{if(!supabase)throw new Error('Configure o Supabase.');const {data,error}=await supabase.from('appointments').select('id,date,time,status,duration_minutes,patient_id,professional_id,resource_id,patients(name),professionals(name),clinical_resources(name)').eq('clinic_id',clinicId).eq('date',date).order('time');if(error)throw error;return (data??[]).map(i=>({...i,patients:Array.isArray(i.patients)?i.patients[0]??null:i.patients,professionals:Array.isArray(i.professionals)?i.professionals[0]??null:i.professionals,clinical_resources:Array.isArray(i.clinical_resources)?i.clinical_resources[0]??null:i.clinical_resources})) as Appointment[]}})
+  const appointments=useQuery({queryKey:['appointments',clinicId,date],enabled,queryFn:async()=>{if(!supabase)throw new Error('Configure o Supabase.');const {data,error}=await supabase.from('appointments').select('id,date,time,status,duration_minutes,specialty,notes,patient_id,professional_id,resource_id,patients(name),professionals(name),clinical_resources(name)').eq('clinic_id',clinicId).eq('date',date).order('time');if(error)throw error;return (data??[]).map(i=>({...i,patients:Array.isArray(i.patients)?i.patients[0]??null:i.patients,professionals:Array.isArray(i.professionals)?i.professionals[0]??null:i.professionals,clinical_resources:Array.isArray(i.clinical_resources)?i.clinical_resources[0]??null:i.clinical_resources})) as Appointment[]}})
 
   const filteredAppointments = useMemo(() => {
     const all = (appointments.data ?? []).filter(a => a.status !== 'cancelled')
@@ -100,19 +100,20 @@ export function AgendaSection({ clinicId, enabled, organizationType = 'professio
   }, [timelineSlots])
 
   const slots=useQuery({queryKey:['slots',clinicId,date,form.professionalId,form.resourceId,editingId],enabled:enabled&&Boolean(form.professionalId),queryFn:async()=>((await invoke({action:'available-slots',professionalId:+form.professionalId,resourceId:form.resourceId?+form.resourceId:null,date,excludeId:editingId}))?.slots??[]) as string[]})
-  const save=useMutation({mutationFn:()=>invoke({action:editingId?'reschedule':'create',id:editingId,patientId:+form.patientId,professionalId:+form.professionalId,resourceId:form.resourceId?+form.resourceId:null,date,time:form.time}),onSuccess:()=>{setForm({patientId:'',professionalId:activeTab !== null ? String(activeTab) : '',resourceId:'',time:''});setEditingId(null);setNotice('Agendamento salvo.');client.invalidateQueries({queryKey:['appointments',clinicId,date]});client.invalidateQueries({queryKey:['slots']})},onError:(e:Error)=>setNotice(`Erro: ${friendly(e.message)}`)})
+  const save=useMutation({mutationFn:()=>invoke({action:editingId?'reschedule':'create',id:editingId,patientId:+form.patientId,professionalId:+form.professionalId,resourceId:form.resourceId?+form.resourceId:null,date,time:form.time,specialty:form.specialty||undefined,notes:form.notes||undefined}),onSuccess:()=>{const prof = activeProfessionals.find(p => p.id === (activeTab !== null ? activeTab : 0)); setForm({patientId:'',professionalId:activeTab !== null ? String(activeTab) : '',resourceId:'',time:'',specialty:prof?.specialty ?? '',notes:''});setEditingId(null);setNotice('Agendamento salvo.');client.invalidateQueries({queryKey:['appointments',clinicId,date]});client.invalidateQueries({queryKey:['slots']})},onError:(e:Error)=>setNotice(`Erro: ${friendly(e.message)}`)})
   const statusMutation=useMutation({mutationFn:({id,value}:{id:number;value:string})=>invoke({action:'set-status',id,status:value}),onSuccess:()=>client.invalidateQueries({queryKey:['appointments',clinicId,date]}),onError:(e:Error)=>setNotice(`Erro: ${friendly(e.message)}`)})
 
   if(!enabled)return null
 
   const submit=(e:FormEvent)=>{e.preventDefault();setNotice('');save.mutate()}
 
-  const startEdit=(a:Appointment)=>{setEditingId(a.id);setForm({patientId:String(a.patient_id),professionalId:String(a.professional_id),resourceId:a.resource_id?String(a.resource_id):'',time:a.time.slice(0,5)});setNotice('Edite os dados e salve o reagendamento.');window.scrollTo({top:0,behavior:'smooth'})}
+  const startEdit=(a:Appointment)=>{setEditingId(a.id);setForm({patientId:String(a.patient_id),professionalId:String(a.professional_id),resourceId:a.resource_id?String(a.resource_id):'',time:a.time.slice(0,5),specialty:a.specialty??'',notes:a.notes??''});setNotice('Edite os dados e salve o reagendamento.');window.scrollTo({top:0,behavior:'smooth'})}
 
   const handleTabChange = (profId: number | null) => {
     setActiveTab(profId)
+    const prof = activeProfessionals.find(p => p.id === profId)
     if (profId !== null) {
-      setForm(f => ({ ...f, professionalId: String(profId), time: '' }))
+      setForm(f => ({ ...f, professionalId: String(profId), specialty: prof?.specialty ?? f.specialty, time: '' }))
     } else {
       setForm(f => ({ ...f, professionalId: '', time: '' }))
     }
@@ -183,15 +184,54 @@ export function AgendaSection({ clinicId, enabled, organizationType = 'professio
     )}
 
     {/* Form */}
-    <form onSubmit={submit} className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+    <form onSubmit={submit} className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
       <Select label="Paciente" value={form.patientId} onChange={v=>setForm({...form,patientId:v})} items={patients.data??[]} required/>
-      <Select label="Profissional" value={form.professionalId} onChange={v=>setForm({...form,professionalId:v,time:''})} items={activeProfessionals} required/>
+      <Select
+        label="Profissional"
+        value={form.professionalId}
+        onChange={v=>{
+          const prof = activeProfessionals.find(p => String(p.id) === v)
+          setForm({...form, professionalId: v, time: '', specialty: prof?.specialty ?? form.specialty})
+        }}
+        items={activeProfessionals}
+        required
+      />
       <Select label="Sala/cadeira" value={form.resourceId} onChange={v=>setForm({...form,resourceId:v,time:''})} items={(resources.data??[]).filter(x=>x.active)} optional/>
-      <label className="text-sm font-medium">Horário<select value={form.time} onChange={e=>setForm({...form,time:e.target.value})} required disabled={!form.professionalId||slots.isLoading} className="mt-1.5 block w-full rounded-lg border border-slate-300 px-3 py-2.5"><option value="">{slots.isLoading?'Buscando…':'Selecione'}</option>{(slots.data??[]).map(x=><option key={x}>{x}</option>)}</select></label>
-      <button disabled={save.isPending||!form.time} className="self-end rounded-lg bg-vita-600 px-4 py-2.5 font-semibold text-white disabled:opacity-60"><CalendarPlus className="mr-2 inline" size={17}/>{editingId?'Salvar reagendamento':'Agendar'}</button>
+      <label className="text-sm font-medium">
+        Especialidade
+        <input
+          type="text"
+          placeholder="Ex: Ortodontia, Odontopediatria"
+          value={form.specialty}
+          onChange={e=>setForm({...form,specialty:e.target.value})}
+          className="mt-1.5 block w-full rounded-lg border border-slate-300 px-3 py-2.5 outline-none focus:border-vita-600"
+        />
+      </label>
+      <label className="text-sm font-medium">
+        Horário
+        <select value={form.time} onChange={e=>setForm({...form,time:e.target.value})} required disabled={!form.professionalId||slots.isLoading} className="mt-1.5 block w-full rounded-lg border border-slate-300 px-3 py-2.5">
+          <option value="">{slots.isLoading?'Buscando…':'Selecione'}</option>
+          {(slots.data??[]).map(x=><option key={x}>{x}</option>)}
+        </select>
+      </label>
+      <label className="text-sm font-medium md:col-span-2 xl:col-span-3">
+        Observações
+        <textarea
+          rows={2}
+          placeholder="Observações do atendimento, sintomas, solicitações ou informações adicionais"
+          value={form.notes}
+          onChange={e=>setForm({...form,notes:e.target.value})}
+          className="mt-1.5 block w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-vita-600 resize-none"
+        />
+      </label>
+      <div className="md:col-span-2 xl:col-span-3 flex justify-end">
+        <button disabled={save.isPending||!form.time} className="rounded-lg bg-vita-600 px-5 py-2.5 font-semibold text-white disabled:opacity-60 hover:bg-vita-700">
+          <CalendarPlus className="mr-2 inline" size={17}/>{editingId?'Salvar reagendamento':'Agendar'}
+        </button>
+      </div>
     </form>
 
-    {editingId&&<button onClick={()=>{setEditingId(null);setForm({patientId:'',professionalId:activeTab !== null ? String(activeTab) : '',resourceId:'',time:''})}} className="mt-3 text-sm text-slate-600">Cancelar edição</button>}
+    {editingId&&<button onClick={()=>{const prof = activeProfessionals.find(p => p.id === (activeTab !== null ? activeTab : 0)); setEditingId(null);setForm({patientId:'',professionalId:activeTab !== null ? String(activeTab) : '',resourceId:'',time:'',specialty:prof?.specialty ?? '',notes:''})}} className="mt-3 text-sm text-slate-600">Cancelar edição</button>}
     {notice&&<p className="mt-3 text-sm text-vita-700">{notice}</p>}
 
     {/* Timeline View — when a professional tab is selected */}
@@ -219,7 +259,7 @@ export function AgendaSection({ clinicId, enabled, organizationType = 'professio
           {timelineSlots.map(slot => (
             <div
               key={slot.time}
-              className={`group relative flex items-center gap-3 rounded-xl border px-4 py-3 transition-all ${
+              className={`group relative flex items-start gap-3 rounded-xl border px-4 py-3 transition-all ${
                 slot.type === 'booked'
                   ? slot.appointment?.status === 'attended'
                     ? 'border-slate-200 bg-slate-50'
@@ -237,28 +277,38 @@ export function AgendaSection({ clinicId, enabled, organizationType = 'professio
               </span>
 
               {slot.type === 'booked' && slot.appointment ? (
-                <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                <div className="flex min-w-0 flex-1 items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className={`truncate text-sm font-semibold ${slot.appointment.status === 'attended' ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
                       {slot.appointment.patients?.name ?? 'Paciente'}
                     </p>
-                    <div className="flex items-center gap-2">
-                      <span className={`mt-0.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusColor(slot.appointment.status)}`}>
+                    <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                      <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusColor(slot.appointment.status)}`}>
                         {statusLabel(slot.appointment.status)}
                       </span>
+                      {slot.appointment.specialty && (
+                        <span className="inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-700">
+                          {slot.appointment.specialty}
+                        </span>
+                      )}
                       <span className="text-[10px] text-slate-400">{slot.appointment.duration_minutes} min</span>
                     </div>
+                    {slot.appointment.notes && (
+                      <p className="mt-1.5 line-clamp-2 text-xs text-slate-500 italic bg-white/60 p-1.5 rounded border border-slate-200/50">
+                        {slot.appointment.notes}
+                      </p>
+                    )}
                   </div>
                   {/* Quick actions */}
                   <div className="flex shrink-0 items-center gap-1">
-                    {!['cancelled','attended'].includes(slot.appointment.status) && <button onClick={()=>startEdit(slot.appointment!)} title="Reagendar" className="rounded-lg p-1.5 text-slate-400 hover:bg-white hover:text-vita-700"><Pencil size={14}/></button>}
+                    {!['cancelled','attended'].includes(slot.appointment.status) && <button onClick={()=>startEdit(slot.appointment!)} title="Reagendar / Editar" className="rounded-lg p-1.5 text-slate-400 hover:bg-white hover:text-vita-700"><Pencil size={14}/></button>}
                     {slot.appointment.status==='pending'&&<button onClick={()=>statusMutation.mutate({id:slot.appointment!.id,value:'confirmed'})} title="Confirmar" className="rounded-lg p-1.5 text-slate-400 hover:bg-emerald-50 hover:text-emerald-700"><Check size={14}/></button>}
                     {slot.appointment.status==='confirmed'&&<button onClick={()=>statusMutation.mutate({id:slot.appointment!.id,value:'attended'})} className="rounded-lg px-2 py-1 text-[10px] font-semibold text-slate-500 hover:bg-emerald-50 hover:text-emerald-700">Atendido</button>}
                     {!['cancelled','attended'].includes(slot.appointment.status)&&<button onClick={()=>statusMutation.mutate({id:slot.appointment!.id,value:'cancelled'})} title="Cancelar" className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-700"><X size={14}/></button>}
                   </div>
                 </div>
               ) : (
-                <span className="text-sm text-emerald-600 font-medium">Livre</span>
+                <span className="text-sm text-emerald-600 font-medium py-1">Livre</span>
               )}
             </div>
           ))}
@@ -280,13 +330,17 @@ export function AgendaSection({ clinicId, enabled, organizationType = 'professio
             <p className="pb-3 text-center text-xs text-amber-600">
               ⚠ Profissional sem configuração de horários — exibindo apenas os atendimentos agendados.
             </p>
-            {filteredAppointments.map(a=><div key={a.id} className={`flex justify-between gap-3 py-3 text-sm ${a.status==='attended'?'text-slate-400 line-through':''}`}>
-              <span>
-                <strong>{a.time.slice(0,5)} | {a.patients?.name}</strong>
-                <small> | {a.professionals?.name} · {a.duration_minutes} min</small>
-              </span>
-              <div className="flex gap-2">
-                {!['cancelled','attended'].includes(a.status)&&<button onClick={()=>startEdit(a)} title="Reagendar"><Pencil size={16}/></button>}
+            {filteredAppointments.map(a=><div key={a.id} className={`flex justify-between items-start gap-3 py-3 text-sm ${a.status==='attended'?'text-slate-400 line-through':''}`}>
+              <div>
+                <span>
+                  <strong>{a.time.slice(0,5)} | {a.patients?.name}</strong>
+                  <small> | {a.professionals?.name} · {a.duration_minutes} min</small>
+                  {a.specialty && <span className="ml-2 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">{a.specialty}</span>}
+                </span>
+                {a.notes && <p className="mt-1 text-xs text-slate-500 italic">Obs: {a.notes}</p>}
+              </div>
+              <div className="flex gap-2 shrink-0">
+                {!['cancelled','attended'].includes(a.status)&&<button onClick={()=>startEdit(a)} title="Reagendar / Editar"><Pencil size={16}/></button>}
                 {a.status==='pending'&&<button onClick={()=>statusMutation.mutate({id:a.id,value:'confirmed'})} title="Confirmar"><Check size={16}/></button>}
                 {a.status==='confirmed'&&<button onClick={()=>statusMutation.mutate({id:a.id,value:'attended'})}>Atendido</button>}
                 {!['cancelled','attended'].includes(a.status)&&<button onClick={()=>statusMutation.mutate({id:a.id,value:'cancelled'})}><X size={16}/></button>}
@@ -301,13 +355,17 @@ export function AgendaSection({ clinicId, enabled, organizationType = 'professio
                 Nenhum atendimento nesta data.
               </p>
             )}
-            {filteredAppointments.map(a=><div key={a.id} className={`flex justify-between gap-3 py-3 text-sm ${a.status==='attended'?'text-slate-400 line-through':''}`}>
-              <span>
-                <strong>{a.time.slice(0,5)} | {a.patients?.name}</strong>
-                <small> | {a.professionals?.name} · {a.duration_minutes} min</small>
-              </span>
-              <div className="flex gap-2">
-                {!['cancelled','attended'].includes(a.status)&&<button onClick={()=>startEdit(a)} title="Reagendar"><Pencil size={16}/></button>}
+            {filteredAppointments.map(a=><div key={a.id} className={`flex justify-between items-start gap-3 py-3 text-sm ${a.status==='attended'?'text-slate-400 line-through':''}`}>
+              <div>
+                <span>
+                  <strong>{a.time.slice(0,5)} | {a.patients?.name}</strong>
+                  <small> | {a.professionals?.name} · {a.duration_minutes} min</small>
+                  {a.specialty && <span className="ml-2 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">{a.specialty}</span>}
+                </span>
+                {a.notes && <p className="mt-1 text-xs text-slate-500 italic">Obs: {a.notes}</p>}
+              </div>
+              <div className="flex gap-2 shrink-0">
+                {!['cancelled','attended'].includes(a.status)&&<button onClick={()=>startEdit(a)} title="Reagendar / Editar"><Pencil size={16}/></button>}
                 {a.status==='pending'&&<button onClick={()=>statusMutation.mutate({id:a.id,value:'confirmed'})} title="Confirmar"><Check size={16}/></button>}
                 {a.status==='confirmed'&&<button onClick={()=>statusMutation.mutate({id:a.id,value:'attended'})}>Atendido</button>}
                 {!['cancelled','attended'].includes(a.status)&&<button onClick={()=>statusMutation.mutate({id:a.id,value:'cancelled'})}><X size={16}/></button>}

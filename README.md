@@ -32,3 +32,9 @@ supabase functions deploy admin-organizations
 ```
 
 A função usa `SUPABASE_SERVICE_ROLE_KEY` somente no ambiente seguro do Supabase para criar usuários. Não defina essa chave no `.env` do Vite.
+
+## Integração em Novos Sites (API Pública)
+
+Para integrar o fluxo de agendamento em novos sites (Vercel, WordPress, landing pages, etc.), consulte o guia completo com exemplos de payloads, respostas, liberação de CORS e checklist em:
+
+📄 **[Manual de Integração da API](docs/MANUAL_INTEGRACAO_API.md)**
