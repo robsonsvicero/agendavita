@@ -310,13 +310,8 @@ export function DashboardSection({
                   <div>
                     {/* Professional Header */}
                     <div className="flex items-center gap-3">
-                      <div className="grid size-11 place-items-center rounded-xl bg-slate-100 text-slate-700 font-bold text-sm">
-                        {prof.name
-                          .split(' ')
-                          .map(p => p[0])
-                          .slice(0, 2)
-                          .join('')
-                          .toUpperCase()}
+                      <div className="grid size-11 place-items-center rounded-xl bg-slate-100 text-slate-700">
+                        <Stethoscope size={20} strokeWidth={2.1} aria-hidden="true" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <h4 className="font-bold text-slate-900 text-sm truncate">

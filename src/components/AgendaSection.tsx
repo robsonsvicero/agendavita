@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CalendarPlus, Check, Clock, Pencil, Users, X } from 'lucide-react'
+import { CalendarPlus, Check, Clock, Pencil, Stethoscope, Users, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { listPatients, type Patient } from '../lib/patients'
 import { listProfessionals, listResources, type Professional, type ClinicalResource } from '../lib/organizationTeam'
@@ -540,7 +540,7 @@ export function AgendaSection({ clinicId, enabled, organizationType = 'professio
                       <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                         <div className="flex items-center gap-2.5">
                           <div className="grid size-8 place-items-center rounded-lg bg-vita-50 text-vita-700 font-bold text-xs border border-vita-100">
-                            {prof.name.slice(0, 2).toUpperCase()}
+                            <Stethoscope size={16} strokeWidth={2.2} aria-hidden="true" />
                           </div>
                           <div>
                             <h3 className="font-bold text-slate-900 text-sm sm:text-base">

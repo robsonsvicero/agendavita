@@ -9,6 +9,10 @@
   --color-vita-700: #6d28d9;
 }
 
+:root {
+  --vita-brand-600: rgba(255, 255, 255, 0.6);
+}
+
 @layer base {
   body {
     @apply min-h-screen bg-slate-50 font-sans text-slate-900 antialiased;
