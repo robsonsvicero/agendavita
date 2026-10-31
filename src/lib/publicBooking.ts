@@ -3,6 +3,7 @@ import { supabase } from './supabase'
 export type PublicClinic = {
   name: string
   specialty: string | null
+  phone: string | null
   logo_url: string | null
   primary_color: string | null
   secondary_color: string | null

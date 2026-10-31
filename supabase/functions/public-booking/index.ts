@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
 
   const { data: clinic, error: clinicError } = await admin
     .from('clinics')
-    .select('id,name,address,specialty,logo_url,primary_color,secondary_color,background_color,font_family,google_font_family')
+    .select('id,name,address,specialty,phone,logo_url,primary_color,secondary_color,background_color,font_family,google_font_family')
     .eq('slug', slug)
     .eq('status', 'active')
     .maybeSingle()

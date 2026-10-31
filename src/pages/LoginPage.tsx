@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { ArrowLeft, CheckCircle2, Eye, EyeOff, Lock, Mail } from 'lucide-react'
+import agendaImage from '../assets/agenda_image.jpg'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
 import { useAuth } from '../providers/AuthProvider'
 
@@ -56,141 +57,172 @@ export function LoginPage() {
   }
 
   return (
-    <main className="grid min-h-screen place-items-center bg-slate-100 p-5">
-      <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-sm">
-        <div className="mb-4">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-800 transition"
-          >
-            <ArrowLeft size={14} /> Voltar à página inicial
-          </Link>
+    <main className="flex min-h-screen items-center justify-center bg-slate-100 p-4 lg:p-0">
+      <div className="w-full max-w-4xl overflow-hidden rounded-none lg:rounded-3xl bg-white shadow-md grid grid-cols-1 lg:grid-cols-2 min-h-screen lg:min-h-0">
+
+        {/* ── Coluna esquerda: imagem decorativa ── */}
+        <div className="relative hidden lg:block">
+          <img
+            src={agendaImage}
+            alt="Consultório organizado com agenda profissional"
+            className="size-full object-cover"
+          />
+
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/20 p-8 flex flex-col justify-end">
+            <span className="text-xs font-bold uppercase tracking-wider text-emerald-300">Agenda Vita</span>
+            <p className="mt-1 text-lg font-bold text-white leading-snug">
+              Sua rotina de atendimentos organizada em um só lugar.
+            </p>
+            <p className="mt-1 text-xs text-slate-300">
+              Mais tempo para cuidar dos pacientes, mais clareza para gerenciar.
+            </p>
+          </div>
         </div>
 
-        <h1 className="text-2xl font-bold">
-          {mode === 'login' ? 'Acessar Agenda Vita' : 'Recuperar senha'}
-        </h1>
-        <p className="mt-2 text-sm text-slate-600">
-          {mode === 'login'
-            ? 'Use as credenciais fornecidas pelo administrador.'
-            : 'Informe seu e-mail para receber as instruções de recuperação.'}
-        </p>
-
-        {!isSupabaseConfigured && (
-          <p className="mt-5 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
-            Configure o arquivo <code>.env</code> a partir de <code>.env.example</code>.
-          </p>
-        )}
-
-        {mode === 'login' ? (
-          <form onSubmit={submitLogin} className="mt-6">
-            <label className="block text-sm font-medium">
-              E-mail
-              <input
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                type="email"
-                required
-                placeholder="seu@email.com"
-                className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 outline-none transition-colors focus:border-vita-600"
-              />
-            </label>
-
-            <div className="mt-4">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">Senha</label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMode('forgot')
-                    setMessage('')
-                    setSuccessNotice('')
-                  }}
-                  className="text-xs font-semibold text-vita-700 hover:text-vita-800 hover:underline"
-                >
-                  Esqueceu a senha?
-                </button>
-              </div>
-              <div className="relative mt-1.5">
-                <input
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  placeholder="Sua senha"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2.5 pr-10 outline-none transition-colors focus:border-vita-600"
-                />
-                <button
-                  type="button"
-                  tabIndex={-1}
-                  onClick={() => setShowPassword(v => !v)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600"
-                  aria-label={showPassword ? 'Ocultar senha' : 'Exibir senha'}
-                  title={showPassword ? 'Ocultar senha' : 'Exibir senha'}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-            </div>
-
-            {message && <p className="mt-4 text-sm text-red-700">{message}</p>}
-
-            <button
-              disabled={busy}
-              className="mt-6 w-full rounded-lg bg-vita-600 py-3 font-semibold text-white transition-opacity hover:bg-vita-700 disabled:opacity-60"
+        {/* ── Coluna direita: formulário ── */}
+        <div className="flex flex-col p-8 sm:p-10">
+          <div className="mb-6">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-800 transition"
             >
-              {busy ? 'Entrando…' : 'Entrar'}
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={submitForgot} className="mt-6">
-            {successNotice ? (
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950">
-                <div className="flex items-start gap-3">
-                  <CheckCircle2 size={20} className="mt-0.5 text-emerald-600 shrink-0" />
-                  <p className="text-xs leading-relaxed">{successNotice}</p>
+              <ArrowLeft size={14} /> Voltar à página inicial
+            </Link>
+          </div>
+
+          <div className="flex-1">
+            <h1 className="text-2xl font-bold">
+              {mode === 'login' ? 'Acessar Agenda Vita' : 'Recuperar senha'}
+            </h1>
+            <p className="mt-2 text-sm text-slate-600">
+              {mode === 'login'
+                ? 'Use as credenciais fornecidas pelo administrador.'
+                : 'Informe seu e-mail para receber as instruções de recuperação.'}
+            </p>
+
+            {!isSupabaseConfigured && (
+              <p className="mt-5 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
+                Configure o arquivo <code>.env</code> a partir de <code>.env.example</code>.
+              </p>
+            )}
+
+            {mode === 'login' ? (
+              <form onSubmit={submitLogin} className="mt-6">
+                <label className="block text-sm font-medium">
+                  E-mail
+                  <input
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    type="email"
+                    required
+                    placeholder="seu@email.com"
+                    className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 outline-none transition-colors focus:border-vita-600"
+                  />
+                </label>
+
+                <div className="mt-4">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium">Senha</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMode('forgot')
+                        setMessage('')
+                        setSuccessNotice('')
+                      }}
+                      className="text-xs font-semibold text-vita-700 hover:text-vita-800 hover:underline"
+                    >
+                      Esqueceu a senha?
+                    </button>
+                  </div>
+                  <div className="relative mt-1.5">
+                    <input
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      placeholder="Sua senha"
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2.5 pr-10 outline-none transition-colors focus:border-vita-600"
+                    />
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      onClick={() => setShowPassword(v => !v)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600"
+                      aria-label={showPassword ? 'Ocultar senha' : 'Exibir senha'}
+                      title={showPassword ? 'Ocultar senha' : 'Exibir senha'}
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
                 </div>
-              </div>
+
+                {message && <p className="mt-4 text-sm text-red-700">{message}</p>}
+
+                <button
+                  disabled={busy}
+                  className="mt-6 w-full rounded-lg bg-vita-600 py-3 font-semibold text-white transition-opacity hover:bg-vita-700 disabled:opacity-60"
+                >
+                  {busy ? 'Entrando…' : 'Entrar'}
+                </button>
+              </form>
             ) : (
-              <label className="block text-sm font-medium">
-                E-mail cadastrado
-                <input
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  type="email"
-                  required
-                  placeholder="seu@email.com"
-                  className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 outline-none transition-colors focus:border-vita-600"
-                />
-              </label>
+              <form onSubmit={submitForgot} className="mt-6">
+                {successNotice ? (
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950">
+                    <div className="flex items-start gap-3">
+                      <CheckCircle2 size={20} className="mt-0.5 text-emerald-600 shrink-0" />
+                      <p className="text-xs leading-relaxed">{successNotice}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <label className="block text-sm font-medium">
+                    E-mail cadastrado
+                    <input
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      type="email"
+                      required
+                      placeholder="seu@email.com"
+                      className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 outline-none transition-colors focus:border-vita-600"
+                    />
+                  </label>
+                )}
+
+                {message && <p className="mt-4 text-sm text-red-700">{message}</p>}
+
+                {!successNotice && (
+                  <button
+                    disabled={busy}
+                    className="mt-6 w-full rounded-lg bg-vita-600 py-3 font-semibold text-white transition-opacity hover:bg-vita-700 disabled:opacity-60"
+                  >
+                    {busy ? 'Enviando link…' : 'Enviar link para redefinir senha'}
+                  </button>
+                )}
+
+                <div className="mt-6 text-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode('login')
+                      setMessage('')
+                      setSuccessNotice('')
+                    }}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900"
+                  >
+                    <ArrowLeft size={14} /> Voltar para o login
+                  </button>
+                </div>
+              </form>
             )}
+          </div>
 
-            {message && <p className="mt-4 text-sm text-red-700">{message}</p>}
+          <p className="mt-10 text-xs text-slate-400 text-center">
+            © {new Date().getFullYear()} Agenda Vita · Todos os direitos reservados
+          </p>
+        </div>
 
-            {!successNotice && (
-              <button
-                disabled={busy}
-                className="mt-6 w-full rounded-lg bg-vita-600 py-3 font-semibold text-white transition-opacity hover:bg-vita-700 disabled:opacity-60"
-              >
-                {busy ? 'Enviando link…' : 'Enviar link para redefinir senha'}
-              </button>
-            )}
 
-            <div className="mt-6 text-center">
-              <button
-                type="button"
-                onClick={() => {
-                  setMode('login')
-                  setMessage('')
-                  setSuccessNotice('')
-                }}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900"
-              >
-                <ArrowLeft size={14} /> Voltar para o login
-              </button>
-            </div>
-          </form>
-        )}
       </div>
     </main>
   )

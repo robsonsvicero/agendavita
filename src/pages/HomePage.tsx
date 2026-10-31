@@ -1,5 +1,6 @@
-import { CalendarDays, Clock, Globe, LogIn } from 'lucide-react'
+﻿import { CalendarDays, Clock, Globe, LogIn } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import heroImage from '../../assets/hero_image.jpg'
 import { useAuth } from '../providers/AuthProvider'
 
 const platformAdminEmail = 'robsonsvicero@outlook.com'
@@ -42,7 +43,7 @@ export function HomePage() {
           <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-14">
             {/* Left Content */}
             <div className="lg:col-span-7">
-              <span className="inline-block text-xs font-bold uppercase tracking-wider text-sky-700">
+              <span className="inline-block text-xs font-bold uppercase tracking-wider text-vita-700">
                 Gestão para profissionais
               </span>
 
@@ -65,7 +66,7 @@ export function HomePage() {
               <div className="mt-8">
                 <Link
                   to={user ? dashboardPath : '/entrar'}
-                  className="inline-flex items-center gap-2.5 rounded-xl bg-[#0e486b] px-6 py-3 text-base font-semibold text-white shadow-xs transition hover:bg-[#0b3b57] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 active:scale-[0.98]"
+                  className="inline-flex items-center gap-2.5 rounded-xl bg-vita-600 px-6 py-3 text-base font-semibold text-white shadow-xs transition hover:bg-vita-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vita-600 active:scale-[0.98]"
                 >
                   <LogIn size={18} />
                   <span>{user ? 'Acessar meu painel' : 'Acessar o sistema'}</span>
@@ -76,19 +77,28 @@ export function HomePage() {
               </div>
             </div>
 
-            {/* Right Card (Visual mockup inspired by reference) */}
+            {/* Right Card (Visual card with background image) */}
             <div className="lg:col-span-5 flex justify-center lg:justify-end">
-              <div className="w-full max-w-md rounded-3xl border border-[#d8e5ef] bg-[#eef4f9] p-10 sm:p-12 text-center shadow-xs flex flex-col items-center justify-center min-h-[280px]">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-xs text-[#0e486b] mb-4">
-                  <CalendarDays size={32} className="stroke-[2.2]" />
+              <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-slate-200/80 shadow-md min-h-[360px] flex flex-col justify-end p-8 sm:p-10">
+                <img
+                  src={heroImage}
+                  alt="Rotina de atendimentos organizada"
+                  className="absolute inset-0 size-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/20 to-slate-900/10" />
+
+                <div className="relative z-10">
+                  <div className="inline-flex items-center gap-2 rounded-xl bg-white/15 px-3 py-1.5 text-xs font-semibold tracking-wide backdrop-blur-md text-vita-50 border border-white/20 mb-3">
+                    <CalendarDays size={16} />
+                    <span>Agenda Vita · Gestão</span>
+                  </div>
+                  <h3 className="text-xl font-bold leading-snug text-white">
+                    Rotina organizada em um só lugar
+                  </h3>
+                  <p className="mt-2 text-xs leading-relaxed text-slate-200">
+                    Mais tempo para atender seus pacientes e total clareza para administrar.
+                  </p>
                 </div>
-                <div className="flex items-baseline justify-center gap-1.5">
-                  <span className="text-2xl font-extrabold tracking-tight text-slate-900">Agenda Vita</span>
-                  <span className="text-xs font-semibold tracking-wider text-slate-400 uppercase">Gestão</span>
-                </div>
-                <p className="mt-5 text-sm font-medium text-slate-600 max-w-[260px] leading-relaxed">
-                  Mais tempo para atender. Mais clareza para administrar.
-                </p>
               </div>
             </div>
           </div>
@@ -100,7 +110,7 @@ export function HomePage() {
             <div className="grid grid-cols-1 gap-10 md:grid-cols-3 md:gap-8 lg:gap-12">
               {/* Feature 1 */}
               <div className="flex flex-col">
-                <div className="text-[#0e486b] mb-4">
+                <div className="text-vita-700 mb-4">
                   <CalendarDays size={24} className="stroke-[2.2]" />
                 </div>
                 <h2 className="text-lg font-bold text-slate-900">Agenda organizada</h2>
@@ -112,7 +122,7 @@ export function HomePage() {
 
               {/* Feature 2 */}
               <div className="flex flex-col md:border-l md:border-slate-200 md:pl-8 lg:pl-10">
-                <div className="text-[#0e486b] mb-4">
+                <div className="text-vita-700 mb-4">
                   <Globe size={24} className="stroke-[2.2]" />
                 </div>
                 <h2 className="text-lg font-bold text-slate-900">Agendamento online e API</h2>
@@ -124,7 +134,7 @@ export function HomePage() {
 
               {/* Feature 3 */}
               <div className="flex flex-col md:border-l md:border-slate-200 md:pl-8 lg:pl-10">
-                <div className="text-[#0e486b] mb-4">
+                <div className="text-vita-700 mb-4">
                   <Clock size={24} className="stroke-[2.2]" />
                 </div>
                 <h2 className="text-lg font-bold text-slate-900">Rotina mais simples</h2>
@@ -138,10 +148,10 @@ export function HomePage() {
         </section>
 
         {/* Callout Section (Without pricing) */}
-        <section className="border-t border-slate-100 bg-[#f8fafc] py-16 sm:py-20">
+        <section className="border-t border-slate-100 bg-vita-50 py-16 sm:py-20">
           <div className="mx-auto max-w-6xl px-6 sm:px-8">
             <div className="max-w-3xl">
-              <span className="text-xs font-bold uppercase tracking-wider text-sky-700">
+              <span className="text-xs font-bold uppercase tracking-wider text-vita-700">
                 Acesso à plataforma
               </span>
               <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
@@ -150,7 +160,7 @@ export function HomePage() {
               <div className="mt-4 space-y-3 text-base leading-relaxed text-slate-600">
                 <p>
                   Use o Agenda Vita para apoiar a organização de horários, profissionais e informações
-                  de atendimento da sua clínica ou consultório.
+                  de atendimento da sua clí­nica ou consultório.
                 </p>
                 <p>
                   Centralize a recepção, acompanhe as marcações em tempo real e ofereça aos seus pacientes
@@ -160,7 +170,7 @@ export function HomePage() {
               <div className="mt-8">
                 <Link
                   to={user ? dashboardPath : '/entrar'}
-                  className="inline-flex items-center gap-2 rounded-xl bg-[#0e486b] px-6 py-3 text-sm font-semibold text-white shadow-xs transition hover:bg-[#0b3b57] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 active:scale-[0.98]"
+                  className="inline-flex items-center gap-2 rounded-xl bg-vita-600 px-6 py-3 text-sm font-semibold text-white shadow-xs transition hover:bg-vita-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vita-600 active:scale-[0.98]"
                 >
                   <LogIn size={16} />
                   <span>{user ? 'Entrar no painel' : 'Fazer login da organização'}</span>
@@ -180,4 +190,6 @@ export function HomePage() {
     </div>
   )
 }
+
+
 
